@@ -1,3 +1,4 @@
+# Database schema
 from hashlib import md5
 from datetime import datetime, timezone
 from typing import Optional
