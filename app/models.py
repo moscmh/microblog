@@ -1,10 +1,12 @@
 # Database schema
+from time import time
 from hashlib import md5
 from datetime import datetime, timezone
 from typing import Optional
 import sqlalchemy as sa
 import sqlalchemy.orm as so
-from app import db, login
+import jwt
+from app import db, login, app
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
 
@@ -22,6 +24,18 @@ class User(UserMixin, db.Model):
     posts: so.WriteOnlyMapped['Post'] = so.relationship(back_populates="author")
     about_me: so.Mapped[Optional[str]] = so.mapped_column(sa.String(140))
     last_seen: so.Mapped[Optional[datetime]] = so.mapped_column(default=lambda: datetime.now(timezone.utc))
+    
+    following: so.WriteOnlyMapped['User'] = so.relationship(
+        secondary=followers,
+        primaryjoin=(followers.c.follower_id == id),
+        secondaryjoin=(followers.c.followed_id == id),
+        back_populates="followers")
+
+    followers: so.WriteOnlyMapped['User'] = so.relationship(
+        secondary=followers,
+        primaryjoin=(followers.c.followed_id == id),
+        secondaryjoin=(followers.c.follower_id == id),
+        back_populates="following")
 
     def __repr__(self):
         return "<User {}>".format(self.username)
@@ -71,17 +85,19 @@ class User(UserMixin, db.Model):
             .order_by(Post.timestamp.desc())
         )
     
-    following: so.WriteOnlyMapped['User'] = so.relationship(
-        secondary=followers,
-        primaryjoin=(followers.c.follower_id == id),
-        secondaryjoin=(followers.c.followed_id == id),
-        back_populates="followers")
-
-    followers: so.WriteOnlyMapped['User'] = so.relationship(
-        secondary=followers,
-        primaryjoin=(followers.c.followed_id == id),
-        secondaryjoin=(followers.c.follower_id == id),
-        back_populates="following")
+    def get_reset_password_token(self, expires_in=600):
+        return jwt.encode(
+            {'reset_password': self.id, 'exp': time() + expires_in},
+            app.config['SECRET_KEY'], algorithm='HS256'
+        )
+    
+    @staticmethod
+    def verify_reset_password_token(token):
+        try:
+            id = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])['reset_password']
+        except:
+            return None
+        return db.session.get(User, id)
     
 @login.user_loader
 def load_user(id):
