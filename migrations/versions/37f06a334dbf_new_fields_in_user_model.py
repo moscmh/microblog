@@ -1,8 +1,8 @@
-"""New fields in user model.
+"""new fields in user model
 
-Revision ID: ef0c25408b45
-Revises: 008eb70538f6
-Create Date: 2025-12-27 10:43:54.228722
+Revision ID: 37f06a334dbf
+Revises: 780739b227a7
+Create Date: 2017-09-14 10:54:13.865401
 
 """
 from alembic import op
@@ -10,8 +10,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'ef0c25408b45'
-down_revision = '008eb70538f6'
+revision = '37f06a334dbf'
+down_revision = '780739b227a7'
 branch_labels = None
 depends_on = None
 
